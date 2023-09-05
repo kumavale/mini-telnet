@@ -6,53 +6,56 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 #[tokio::main]
-async fn main() {
-    let stream = TcpStream::connect("1984.ws:23").await.unwrap();
+async fn main() -> anyhow::Result<()> {
+    let stream = TcpStream::connect("1984.ws:23").await?;
     let (sender, receiver) = broadcast::channel(1);
     let (mut stream, mut sink) = stream.into_split();
 
-    negotiation(&mut stream, &mut sink).await;
+    negotiation(&mut stream, &mut sink).await?;
 
     let input_handle = stdin(sender);
     let tx_handle = tx(sink, receiver);
     let rx_handle = rx(stream);
 
     tokio::select! {
-        _ = input_handle => (),
-        _ = tx_handle => (),
-        _ = rx_handle => (),
+        r = input_handle => r?,
+        r = tx_handle => r,
+        r = rx_handle => r,
     }
 }
 
-fn stdin(sender: broadcast::Sender<Vec<u8>>) -> JoinHandle<()> {
+fn stdin(sender: broadcast::Sender<Vec<u8>>) -> JoinHandle<anyhow::Result<()>> {
     tokio::task::spawn_blocking(move || loop {
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        sender.send(input.into_bytes()).unwrap();
+        std::io::stdin().read_line(&mut input)?;
+        sender.send(input.into_bytes())?;
     })
 }
 
-async fn tx(mut sink: OwnedWriteHalf, mut proxy: broadcast::Receiver<Vec<u8>>) {
+async fn tx(
+    mut sink: OwnedWriteHalf,
+    mut proxy: broadcast::Receiver<Vec<u8>>,
+) -> anyhow::Result<()> {
     loop {
-        let input = proxy.recv().await.unwrap();
-        sink.write_all(&input).await.unwrap();
+        let input = proxy.recv().await?;
+        sink.write_all(&input).await?;
     }
 }
 
-async fn rx(mut stream: OwnedReadHalf) {
+async fn rx(mut stream: OwnedReadHalf) -> anyhow::Result<()> {
     loop {
         let mut buf = vec![];
         match stream.read_buf(&mut buf).await {
-            Ok(0) | Err(_) => return,
+            Ok(0) | Err(_) => return Ok(()),
             Ok(_) => {
-                std::io::stdout().lock().write_all(&buf).unwrap();
-                std::io::stdout().flush().unwrap();
+                std::io::stdout().lock().write_all(&buf)?;
+                std::io::stdout().flush()?;
             }
         }
     }
 }
 
-async fn negotiation(stream: &mut OwnedReadHalf, sink: &mut OwnedWriteHalf) {
+async fn negotiation(stream: &mut OwnedReadHalf, sink: &mut OwnedWriteHalf) -> anyhow::Result<()> {
     // options
     const SUPPRESS_GO_AHEAD: u8 =  3;
     const WINDOW_SIZE:       u8 = 31;
@@ -66,13 +69,13 @@ async fn negotiation(stream: &mut OwnedReadHalf, sink: &mut OwnedWriteHalf) {
     const IAC:  u8 = 255;
 
     // My negotiation
-    sink.write_all(&[IAC, WILL, WINDOW_SIZE]).await.unwrap();
+    sink.write_all(&[IAC, WILL, WINDOW_SIZE]).await?;
 
     // Server negotiation
     loop {
         let mut buf = vec![0; 3];
         match stream.peek(&mut buf).await {
-            Ok(0) | Err(_) => return,
+            Ok(0) => return Ok(()),
             Ok(_) => {
                 if buf[0] == IAC {
                     if buf[1] == DO {
@@ -89,12 +92,13 @@ async fn negotiation(stream: &mut OwnedReadHalf, sink: &mut OwnedWriteHalf) {
                             buf[1] = DONT
                         }
                     }
-                    sink.write_all(&buf).await.unwrap();
-                    stream.read_exact(&mut buf).await.unwrap();
+                    sink.write_all(&buf).await?;
+                    stream.read_exact(&mut buf).await?;
                 } else {
-                    return; // End of Negotiation
+                    return Ok(()); // End of Negotiation
                 }
             }
+            Err(e) => anyhow::bail!(e),
         }
     }
 }
