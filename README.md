@@ -6,8 +6,22 @@
 
 Telnetクライアントの実装
 
-## Features
+## 機能
 
 - WINDOW_SIZE (固定サイズ)
 - SUPPRESS_GO_AHEAD
+
+## 使い方
+
+```
+$ cargo run -- --help
+Usage: mini-telnet <HOSTNAME>
+
+Arguments:
+  <HOSTNAME>  hostname:port
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
 
