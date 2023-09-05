@@ -1,3 +1,4 @@
+use clap::Parser;
 use std::io::prelude::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
@@ -5,9 +6,18 @@ use tokio::net::TcpStream;
 use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// hostname:port
+    hostname: String,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let stream = TcpStream::connect("1984.ws:23").await?;
+    let cli = Cli::parse();
+
+    let stream = TcpStream::connect(&cli.hostname).await?;
     let (sender, receiver) = broadcast::channel(1);
     let (mut stream, mut sink) = stream.into_split();
 
