@@ -60,7 +60,7 @@ pub async fn negotiation(
                         }
                     }
                     sink.write_all(&buf).await?;
-                    stream.read_exact(&mut buf).await?;
+                    stream.read_exact(&mut [0; 3]).await?;
                 } else {
                     return Ok(()); // End of Negotiation
                 }
