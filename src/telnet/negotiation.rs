@@ -26,22 +26,20 @@ pub async fn negotiation(
                                 if buf[2] == WINDOW_SIZE {
                                     buf = vec![IAC, SB, WINDOW_SIZE, 0, 80, 0, 24, IAC, SE];
                                 } else {
-                                    buf[1] = WONT
+                                    buf[1] = WONT;
                                 }
                             }
                             if buf[1] == WILL {
                                 if buf[2] == SUPPRESS_GO_AHEAD {
-                                    buf[1] = DO
+                                    buf[1] = DO;
                                 } else {
-                                    buf[1] = DONT
+                                    buf[1] = DONT;
                                 }
                             }
                             stream.read_exact(&mut [0; 3]).await?;
                             sink.write_all(&buf).await?;
                         }
-                        SB => {
-                            _ = stream.read_until(SE).await?;
-                        }
+                        SB => _ = stream.read_until(SE).await?,
                         _ => unimplemented!(),
                     }
                 } else {
