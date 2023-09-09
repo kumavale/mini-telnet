@@ -28,19 +28,18 @@ pub async fn negotiation(
                             buf[1].command(),
                             buf[2].option(),
                         );
-                        if buf[1] == DO {
-                            if buf[2] == WINDOW_SIZE {
-                                buf = vec![IAC, SB, WINDOW_SIZE, 0, 80, 0, 24, IAC, SE];
-                            } else {
-                                buf[1] = WONT;
-                            }
-                        }
-                        if buf[1] == WILL {
-                            if buf[2] == SUPPRESS_GO_AHEAD {
-                                buf[1] = DO;
-                            } else {
-                                buf[1] = DONT;
-                            }
+                        match buf[1] {
+                            DO => match buf[2] {
+                                WINDOW_SIZE => {
+                                    buf = vec![IAC, SB, WINDOW_SIZE, 0, 80, 0, 24, IAC, SE]
+                                }
+                                _ => buf[1] = WONT,
+                            },
+                            WILL => match buf[2] {
+                                SUPPRESS_GO_AHEAD => buf[1] = DO,
+                                _ => buf[1] = DONT,
+                            },
+                            _ => unimplemented!(),
                         }
                         stream.read_exact(&mut [0; 3]).await?;
                         sink.write_all(&buf).await?;
