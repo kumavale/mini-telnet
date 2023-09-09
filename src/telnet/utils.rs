@@ -3,6 +3,14 @@ use super::option;
 use tokio::io::AsyncReadExt;
 use tokio::net::tcp::OwnedReadHalf;
 
+macro_rules! match_to_str {
+    { $x:expr => { $($val:pat),+ $(,)? } } => {
+        match $x {
+            $($val => stringify!($val),)*
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait ReadStreamExt {
     async fn read_until(&mut self, end: u8) -> Result<Vec<u8>, std::io::Error>;
@@ -41,34 +49,36 @@ pub trait DisplayExt {
 #[rustfmt::skip]
 impl DisplayExt for u8 {
     fn option(&self) -> &'static str {
-        match *self {
-            option::ECHO                => "ECHO",
-            option::SUPPRESS_GO_AHEAD   => "SUPPRESS_GO_AHEAD",
-            option::STATUS              => "STATUS",
-            option::TERMINAL_TYPE       => "TERMINAL_TYPE",
-            option::WINDOW_SIZE         => "WINDOW_SIZE",
-            option::TERMINAL_SPEED      => "TERMINAL_SPEED",
-            option::REMOTE_FLOW_CONTROL => "REMOTE_FLOW_CONTROL",
-            option::LINE_MODE           => "LINE_MODE",
-            option::X_DISPLAY_LOCATION  => "X_DISPLAY_LOCATION",
-            option::ENVIRONMENT         => "ENVIRONMENT",
-            option::AUTHENTICATION      => "AUTHENTICATION",
-            option::ENCRYPT             => "ENCRYPT",
-            option::NEW_ENVIRONMENT     => "NEW_ENVIRONMENT",
-            _ => "...",
-        }
+        use option::*;
+        match_to_str!(*self => {
+            ECHO,
+            SUPPRESS_GO_AHEAD,
+            STATUS,
+            TERMINAL_TYPE,
+            WINDOW_SIZE,
+            TERMINAL_SPEED,
+            REMOTE_FLOW_CONTROL,
+            LINE_MODE,
+            X_DISPLAY_LOCATION,
+            ENVIRONMENT,
+            AUTHENTICATION,
+            ENCRYPT,
+            NEW_ENVIRONMENT,
+            _,
+        })
     }
 
     fn command(&self) -> &'static str {
-        match *self {
-            command::SE   => "SE",
-            command::SB   => "SB",
-            command::WILL => "WILL",
-            command::WONT => "WONT",
-            command::DO   => "DO",
-            command::DONT => "DONT",
-            command::IAC  => "IAC",
-            _ => "...",
-        }
+        use command::*;
+        match_to_str!(*self => {
+            SE,
+            SB,
+            WILL,
+            WONT,
+            DO,
+            DONT,
+            IAC,
+            _,
+        })
     }
 }
