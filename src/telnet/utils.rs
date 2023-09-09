@@ -16,10 +16,10 @@ impl ReadStreamExt for OwnedReadHalf {
         loop {
             let peek = self.peek_u8().await?;
             buf.push(peek);
+            self.read_u8().await?;
             if peek == end {
                 return Ok(buf);
             }
-            self.read_u8().await?;
         }
     }
 
