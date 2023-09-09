@@ -1,5 +1,6 @@
 use super::command;
 use super::option;
+use tokio::io::AsyncReadExt;
 use tokio::net::tcp::OwnedReadHalf;
 
 #[async_trait::async_trait]
@@ -18,6 +19,7 @@ impl ReadStreamExt for OwnedReadHalf {
             if peek == end {
                 return Ok(buf);
             }
+            self.read_u8().await?;
         }
     }
 
