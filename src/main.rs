@@ -1,6 +1,7 @@
 mod telnet;
 
 use clap::Parser;
+use env_logger::Env;
 use std::io::prelude::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
@@ -11,14 +12,27 @@ use tokio::task::JoinHandle;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// verbose
+    #[arg(short, long, default_value_t = false)]
+    verbose: bool,
+
     /// hostname:port
     hostname: String,
 }
 
+fn logger_init() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
+        .format_target(false)
+        .init();
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
     let cli = Cli::parse();
+
+    if cli.verbose {
+        logger_init();
+    }
 
     let stream = TcpStream::connect(&cli.hostname).await?;
     let (sender, receiver) = broadcast::channel(1);
