@@ -17,6 +17,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::init();
     let cli = Cli::parse();
 
     let stream = TcpStream::connect(&cli.hostname).await?;

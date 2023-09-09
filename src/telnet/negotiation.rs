@@ -1,9 +1,10 @@
+use log::debug;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 use super::command::*;
 use super::option::*;
-use super::utils::ReadStreamExt;
+use super::utils::{DisplayExt, ReadStreamExt};
 
 pub async fn negotiation(
     stream: &mut OwnedReadHalf,
@@ -21,6 +22,12 @@ pub async fn negotiation(
                 IAC => match buf[1] {
                     WILL | DO | WONT | DONT => {
                         debug_assert_eq!(buf.len(), 3);
+                        debug!(
+                            "<--- {} {} {}",
+                            buf[0].command(),
+                            buf[1].command(),
+                            buf[2].option(),
+                        );
                         if buf[1] == DO {
                             if buf[2] == WINDOW_SIZE {
                                 buf = vec![IAC, SB, WINDOW_SIZE, 0, 80, 0, 24, IAC, SE];
@@ -37,8 +44,24 @@ pub async fn negotiation(
                         }
                         stream.read_exact(&mut [0; 3]).await?;
                         sink.write_all(&buf).await?;
+                        debug!(
+                            "---> {} {} {} {:?}",
+                            buf[0].command(),
+                            buf[1].command(),
+                            buf[2].option(),
+                            &buf[3..],
+                        );
                     }
-                    SB => _ = stream.read_until(SE).await?,
+                    SB => {
+                        let buf = stream.read_until(SE).await?;
+                        debug!(
+                            "<--- {} {} {} {:?}",
+                            buf[0].command(),
+                            buf[1].command(),
+                            buf[2].option(),
+                            &buf[3..],
+                        );
+                    }
                     _ => unimplemented!(),
                 },
                 _ => return Ok(()), // End of Negotiation
