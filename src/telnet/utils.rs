@@ -2,14 +2,7 @@ use super::command;
 use super::option;
 use tokio::io::AsyncReadExt;
 use tokio::net::tcp::OwnedReadHalf;
-
-macro_rules! match_to_str {
-    { $x:expr => { $($val:pat),+ $(,)? } } => {
-        match $x {
-            $($val => stringify!($val),)*
-        }
-    }
-}
+use match_to_str::match_to_str;
 
 #[async_trait::async_trait]
 pub trait ReadStreamExt {
