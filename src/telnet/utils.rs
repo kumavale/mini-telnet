@@ -1,8 +1,15 @@
 use super::command;
 use super::option;
+use match_to_str::match_to_str;
 use tokio::io::AsyncReadExt;
 use tokio::net::tcp::OwnedReadHalf;
-use match_to_str::match_to_str;
+
+macro_rules! flat_vec {
+    ( $( $ary:expr ),+ $(,)? ) => [
+        [$( &$ary[..] ),*].concat()
+    ]
+}
+pub(crate) use flat_vec;
 
 #[async_trait::async_trait]
 pub trait ReadStreamExt {
@@ -74,4 +81,23 @@ impl DisplayExt for u8 {
             _,
         })
     }
+}
+
+pub fn get_window_size() -> [u8; 4] {
+    use nix::libc::{ioctl, winsize, STDOUT_FILENO, TIOCGWINSZ};
+    use std::mem;
+
+    let fd = STDOUT_FILENO;
+    let mut ws: winsize = unsafe { mem::zeroed() };
+
+    if unsafe { ioctl(fd, TIOCGWINSZ, &mut ws) } == -1 {
+        return [0, 80, 0, 24];
+    }
+
+    let width: u16 = ws.ws_col;
+    let height: u16 = ws.ws_row;
+
+    flat_vec![width.to_be_bytes(), height.to_be_bytes()]
+        .try_into()
+        .unwrap()
 }

@@ -4,7 +4,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 use super::command::*;
 use super::option::*;
-use super::utils::{DisplayExt, ReadStreamExt};
+use super::utils::{flat_vec, get_window_size, DisplayExt, ReadStreamExt};
 
 pub async fn negotiation(
     stream: &mut OwnedReadHalf,
@@ -31,7 +31,11 @@ pub async fn negotiation(
                         match buf[1] {
                             DO => match buf[2] {
                                 WINDOW_SIZE => {
-                                    buf = vec![IAC, SB, WINDOW_SIZE, 0, 80, 0, 24, IAC, SE]
+                                    buf = flat_vec![
+                                        [IAC, SB, WINDOW_SIZE],
+                                        get_window_size(),
+                                        [IAC, SE],
+                                    ];
                                 }
                                 _ => buf[1] = WONT,
                             },
